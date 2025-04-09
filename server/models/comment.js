@@ -18,23 +18,23 @@ const commentSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Post",
       required: true,
-      index: true, // Add index for performance on post-based queries
+      index: true, // إضافة فهرس لتحسين الأداء في الاستعلامات المستندة إلى المنشور
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
-    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
-    toObject: { virtuals: true }, // Include virtuals when converting to objects
+    timestamps: true, // يضيف تلقائيًا حقول createdAt و updatedAt
+    toJSON: { virtuals: true }, // تضمين الحقول الافتراضية عند التحويل إلى JSON
+    toObject: { virtuals: true }, // تضمين الحقول الافتراضية عند التحويل إلى كائنات
   }
 );
 
-// Add a post-save middleware if needed
+// إضافة معالج بعد الحفظ إذا لزم الأمر
 commentSchema.post("save", function (doc, next) {
   console.log("New comment saved:", doc._id);
   next();
 });
 
-// Pre-find middleware to populate user data
+// معالج ما قبل البحث لملء بيانات المستخدم
 commentSchema.pre("find", function () {
   this.populate("user", "-password -email");
 });

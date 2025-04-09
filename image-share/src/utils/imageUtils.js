@@ -1,47 +1,52 @@
 import { API_URL, IMAGE_BASE_URL } from "../config/urls";
 
-// Placeholder SVG for missing images
-export const NO_IMAGE_SVG =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='24' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
+// صورة SVG بديلة للصور المفقودة
+export const NO_IMAGE_SVG = "/favicon.png";
 
 /**
- * Resolves a relative path with the API URL
- * @param {string} path - Relative path starting with '/'
- * @returns {string} - Full URL
+ * يحل مسارًا نسبيًا مع عنوان URL للواجهة البرمجية
+ * @param {string} path - مسار نسبي يبدأ بـ '/'
+ * @returns {string} - عنوان URL كامل
  */
 export const resolveRelativePath = (path) => {
   if (!path) return null;
   
-  // If the path already has the API_URL, return it as is
+  // إذا كان المسار يحتوي بالفعل على API_URL، قم بإرجاعه كما هو
   if (path.startsWith('http')) return path;
   
-  // Make sure path starts with a slash
+  // تأكد من أن المسار يبدأ بشرطة مائلة
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Remove the API_URL base if it's already in the path
-  const apiUrlBase = new URL(API_URL).pathname;
-  const cleanPath = normalizedPath.startsWith(apiUrlBase) 
-    ? normalizedPath.substring(apiUrlBase.length) 
-    : normalizedPath;
+  try {
+    // معالجة تحليل URL بأمان (قد يفشل إذا كان API_URL غير صحيح)
+    const apiUrlBase = new URL(API_URL).pathname;
+    const cleanPath = normalizedPath.startsWith(apiUrlBase) 
+      ? normalizedPath.substring(apiUrlBase.length) 
+      : normalizedPath;
     
-  return `${API_URL}${cleanPath}`;
+    return `${API_URL}${cleanPath}`;
+  } catch (err) {
+    console.error("Error parsing URL:", err);
+    // العودة إلى الدمج البسيط كخطة بديلة
+    return `${API_URL}${normalizedPath}`;
+  }
 };
 
 /**
- * Extracts a filename from various image object formats
- * @param {Object|string} img - Image object or string
- * @returns {string|null} - Extracted filename or null
+ * يستخرج اسم الملف من تنسيقات كائنات الصور المختلفة
+ * @param {Object|string} img - كائن الصورة أو سلسلة نصية
+ * @returns {string|null} - اسم الملف المستخرج أو قيمة فارغة
  */
 export const extractImageFilename = (img) => {
   if (!img) return null;
 
-  // Handle string case
+  // معالجة حالة السلسلة النصية
   if (typeof img === "string") {
-    // Remove any leading path
+    // إزالة أي مسار سابق
     return img.split("/").pop();
   }
 
-  // Handle object case
+  // معالجة حالة الكائن
   const possibleProperties = [
     "filename",
     "img_uri",
@@ -55,86 +60,134 @@ export const extractImageFilename = (img) => {
     if (img[prop]) {
       const value = img[prop];
       if (typeof value === "string") {
-        return value.split("/").pop();
+        const filename = value.split("/").pop();
+        console.log(`Found filename '${filename}' in ${prop} property`);
+        return filename;
       }
     }
   }
 
-  // Use ID as last resort
-  if (img._id) return img._id;
-  if (img.id) return img.id;
+  // استخدام المعرف كملاذ أخير
+  if (img._id) {
+    console.log(`Using _id as filename: ${img._id}`);
+    return img._id;
+  }
+  if (img.id) {
+    console.log(`Using id as filename: ${img.id}`);
+    return img.id;
+  }
 
+  console.warn("Could not extract filename from image object:", img);
   return null;
 };
 
 /**
- * Generates an array of potential image URLs to try
- * @param {Object|string} img - Image object or string
- * @returns {Array} - Array of URLs to try in order
+ * ينشئ مصفوفة من عناوين URL المحتملة للصور للتجربة
+ * @param {Object|string} img - كائن الصورة أو سلسلة نصية
+ * @returns {Array} - مصفوفة من عناوين URL للتجربة بالترتيب
  */
 export const generateImageUrlCandidates = (img) => {
-  if (!img) return [NO_IMAGE_SVG];
+  if (!img) {
+    console.log("No image data provided, using placeholder");
+    return [NO_IMAGE_SVG];
+  }
 
-  // For direct strings, try to resolve them
+  // للسلاسل النصية المباشرة، حاول تحويلها
   if (typeof img === "string") {
+    console.log(`Generating candidates for string: ${img}`);
     return [
+      // أولاً جرب المسار المباشر
+      img.startsWith('http') ? img : null,
+      
+      // ثم حاول التحويل مع API_URL
       resolveRelativePath(img),
-      `${API_URL}${img}`,
+      
+      // جرب الدمج المباشر
+      `${API_URL}${img.startsWith('/') ? '' : '/'}${img}`,
+      
+      // جرب IMAGE_BASE_URL مع اسم الملف
       `${IMAGE_BASE_URL}/${img.split("/").pop()}`,
+      
+      // جرب مسارات مختلفة
+      `${API_URL}/public/images/${img.split("/").pop()}`,
+      `${API_URL}/public/uploads/${img.split("/").pop()}`,
+      
+      // الملاذ الأخير
       NO_IMAGE_SVG
     ].filter(Boolean);
   }
 
   const filename = extractImageFilename(img);
   
-  // Important: Use img_uri directly if available - this is how the server stores paths
+  // مهم: استخدم img_uri مباشرة إذا كان متاحًا - هذه هي الطريقة التي يخزن بها الخادم المسارات
   if (img.img_uri) {
+    console.log(`Using img_uri: ${img.img_uri}`);
+    const imgUri = img.img_uri;
     return [
-      // Try direct img_uri first - this is most likely to work
-      resolveRelativePath(img.img_uri),
-      `${API_URL}${img.img_uri}`,
-      // Then fallback to constructed paths
+      // جرب img_uri المباشر أولاً - هذا هو الأكثر احتمالاً للعمل
+      imgUri.startsWith('http') ? imgUri : null,
+      resolveRelativePath(imgUri),
+      `${API_URL}${imgUri.startsWith('/') ? '' : '/'}${imgUri}`,
+      
+      // ثم اللجوء إلى المسارات المبنية
       `${API_URL}/images/${filename}`,
       `${API_URL}/uploads/${filename}`,
       `${IMAGE_BASE_URL}/${filename}`,
+      
+      // جرب مسارات الخادم المباشرة بدون API_URL
+      `/images/${filename}`,
+      `/uploads/${filename}`,
+      
+      // جرب مع مجلد public
+      `${API_URL}/public/images/${filename}`,
+      `${API_URL}/public/uploads/${filename}`,
+      
+      // الملاذ الأخير
       NO_IMAGE_SVG
     ].filter(Boolean);
   }
   
-  if (!filename) return [NO_IMAGE_SVG];
+  if (!filename) {
+    console.warn("Could not extract filename, using placeholder");
+    return [NO_IMAGE_SVG];
+  }
   
   console.log(`Generating URL candidates for filename: ${filename}`);
   
-  // Generate multiple possible URLs to try
+  // إنشاء عناوين URL محتملة متعددة للتجربة
   const candidates = [
-    // Direct URLs if present in object
+    // عناوين URL المباشرة إذا كانت موجودة في الكائن
     img.imageUrl,
     img.uri,
     img.url,
     
-    // API_URL variations
+    // تنويعات API_URL
     `${API_URL}/images/${filename}`,
     `${API_URL}/uploads/${filename}`,
     
-    // IMAGE_BASE_URL variations
+    // تنويعات IMAGE_BASE_URL
     `${IMAGE_BASE_URL}/${filename}`,
     
-    // Relative paths
+    // المسارات النسبية
     `/images/${filename}`,
     `/uploads/${filename}`,
     
-    // Last resort
+    // جرب مع مجلد public
+    `${API_URL}/public/images/${filename}`,
+    `${API_URL}/public/uploads/${filename}`,
+    
+    // الملاذ الأخير
     NO_IMAGE_SVG
   ];
   
-  // Filter out undefined/null entries and return
+  // تصفية الإدخالات غير المعرفة/الفارغة والإرجاع
   return candidates.filter(Boolean);
 };
 
 /**
- * Gets the most likely image URL with console debugging
- * @param {Object|string} img - Image object or string
- * @returns {string} - Best URL to try first
+ * يحصل على عنوان URL للصورة الأكثر احتمالاً مع تصحيح الأخطاء في وحدة التحكم
+ * @param {Object|string} img - كائن الصورة أو سلسلة نصية
+ * @returns {string} - أفضل عنوان URL للتجربة أولاً
  */
 export const getImageUrl = (img) => {
   const candidates = generateImageUrlCandidates(img);
@@ -143,22 +196,22 @@ export const getImageUrl = (img) => {
 };
 
 /**
- * Creates an image with fallback URLs
- * @param {Object} props - Component props
- * @returns {JSX.Element} - Image element with error handling
+ * ينشئ صورة مع عناوين URL بديلة
+ * @param {Object} props - خصائص المكون
+ * @returns {JSX.Element} - عنصر الصورة مع معالجة الأخطاء
  */
 export const createImageWithFallbacks = (props) => {
   const { img, alt = "Image", className, style, onClick, onLoad } = props;
 
-  // Get all possible URLs to try
+  // الحصول على جميع عناوين URL المحتملة للتجربة
   const urlCandidates = generateImageUrlCandidates(img);
 
-  // Handle error by trying next URL
+  // معالجة الخطأ من خلال تجربة عنوان URL التالي
   const handleError = (e) => {
     const currentSrc = e.target.src;
     const currentIndex = urlCandidates.indexOf(currentSrc);
 
-    // If we have more URLs to try
+    // إذا كان لدينا المزيد من عناوين URL للتجربة
     if (currentIndex >= 0 && currentIndex < urlCandidates.length - 1) {
       const nextSrc = urlCandidates[currentIndex + 1];
       console.log(
@@ -166,10 +219,10 @@ export const createImageWithFallbacks = (props) => {
       );
       e.target.src = nextSrc;
     } else {
-      // Use placeholder as last resort
+      // استخدام الصورة البديلة كملاذ أخير
       console.log(`All image URLs failed, using placeholder`);
       e.target.src = NO_IMAGE_SVG;
-      e.target.onerror = null; // Prevent further errors
+      e.target.onerror = null; // منع المزيد من الأخطاء
     }
   };
 

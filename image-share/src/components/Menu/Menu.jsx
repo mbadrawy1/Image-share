@@ -8,12 +8,12 @@ import avatar from '../../pages/assets/images/avatar.png';
 import { AuthContext } from "../../context/AuthContext";
 import { PROFILE_URL, API_URL } from "../../config/urls";
 
-const Menu = () => {
+const Menu = ({ initialIsOpen = false }) => {
   const [showLoading, setShowLoading] = useState(false);
   const [name, setName] = useState("");
   const [profileImg, setProfileImg] = useState();
   const [side, setSide] = useState("start");
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initialIsOpen);
 
   const { jwt, setLoggedIn, guestMode } = useContext(AuthContext);
   const navigate = useNavigate(); // React Router v6 equivalent of useNavigate

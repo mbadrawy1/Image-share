@@ -15,14 +15,25 @@ import Alert from "../components/UI/Alert";
 import ActionSheet from "../components/UI/ActionSheet";
 import "../components/UI/ActionSheet.css";
 import PostCard from "../components/Post/PostCard";
+import { getImageUrl, generateImageUrlCandidates } from "../utils/imageUtils";
 
 moment.locale("ar");
 
-// Placeholder SVG for missing images
-const NO_IMAGE_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='24' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
+// صورة SVG بديلة للصور المفقودة
+const NO_IMAGE_SVG = "/favicon.png";
 
-// Helper function to get post image URL
+// دالة مساعدة للحصول على عنوان URL لصورة المنشور
 const getPostImageUrl = (post) => {
+  // First try using the imageUtils function
+  if (post.images && post.images.length > 0) {
+    return getImageUrl(post.images[0]);
+  } 
+  
+  if (post.Post_Images && post.Post_Images.length > 0) {
+    return getImageUrl(post.Post_Images[0]);
+  }
+  
+  // Fallback to the old logic if needed
   if (post.images && post.images.length > 0) {
     const image = post.images[0];
     if (typeof image === 'object' && image.filename) {
@@ -44,10 +55,10 @@ const getPostImageUrl = (post) => {
   return NO_IMAGE_SVG;
 };
 
-// Helper function to get user avatar URL
+// دالة مساعدة للحصول على عنوان URL للصورة الرمزية للمستخدم
 const getUserAvatarUrl = (user) => {
   return user && user.img_uri
-    ? `${IMAGE_BASE_URL}${user.img_uri}`
+    ? `${IMAGE_BASE_URL}/${user.img_uri.startsWith('/') ? user.img_uri.substring(1) : user.img_uri}`
     : avatar;
 };
 
@@ -64,7 +75,7 @@ const GetAllPosts = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // No longer redirecting to login if no JWT
+    // لم يعد يتم إعادة التوجيه إلى صفحة تسجيل الدخول في حالة عدم وجود JWT
     getPosts();
   }, [navigate]);
 
@@ -88,12 +99,12 @@ const GetAllPosts = () => {
     try {
       let response;
       if (jwt) {
-        // Authenticated request with JWT
+        // طلب مصادق عليه باستخدام JWT
         response = await axios.get(GET_ALL_POSTS, {
           headers: { Authorization: `Bearer ${jwt}` },
         });
       } else {
-        // Guest request without authentication
+        // طلب زائر بدون مصادقة
         response = await axios.get(GET_ALL_POSTS);
       }
       
@@ -101,7 +112,7 @@ const GetAllPosts = () => {
     } catch (e) {
       console.error("Error fetching posts:", e);
       if (e.response && e.response.status === 401 && jwt) {
-        // Only clear tokens if we were trying to use authentication
+        // مسح الرموز فقط إذا كنا نحاول استخدام المصادقة
         await Preferences.remove({ key: "accessToken" });
         localStorage.removeItem("accessToken");
         setLoggedIn(false);
@@ -125,46 +136,36 @@ const GetAllPosts = () => {
   };
 
   const handleImageError = (e, post) => {
+    console.log("Image load error, trying fallbacks");
+    
+    // Try to get image data
+    let imageData = null;
     if (post.images && post.images.length > 0) {
-      const imageData = post.images[0];
+      imageData = post.images[0];
+    } else if (post.Post_Images && post.Post_Images.length > 0) {
+      imageData = post.Post_Images[0];
+    }
+    
+    if (imageData) {
+      // Generate all possible URLs for this image
+      const urlCandidates = generateImageUrlCandidates(imageData);
       
-      if (typeof imageData === 'object') {
-        const possibleProperties = ['filename', 'path', 'name', 'img_uri', 'uri'];
-        
-        for (const prop of possibleProperties) {
-          if (imageData[prop]) {
-            const imageName = imageData[prop].split('/').pop();
-            // Try alternative path
-            e.target.src = `${API_URL}/uploads/${imageName}`;
-            // Add a backup error handler to try the /images path as fallback
-            e.target.onerror = () => {
-              e.target.onerror = null; // Prevent infinite recursion
-              e.target.src = NO_IMAGE_SVG;
-            };
-            return;
-          }
-        }
-        
-        if (imageData._id) {
-          e.target.src = `${API_URL}/uploads/${imageData._id}`;
-          e.target.onerror = () => {
-            e.target.onerror = null;
-            e.target.src = NO_IMAGE_SVG;
-          };
-          return;
-        }
-      } else if (typeof imageData === 'string') {
-        e.target.src = `${API_URL}/uploads/${imageData}`;
-        e.target.onerror = () => {
-          e.target.onerror = null;
-          e.target.src = NO_IMAGE_SVG;
-        };
+      // Find current URL index
+      const currentIndex = urlCandidates.indexOf(e.target.src);
+      
+      // Try next URL if available
+      if (currentIndex >= 0 && currentIndex < urlCandidates.length - 1) {
+        const nextUrl = urlCandidates[currentIndex + 1];
+        console.log("Trying next URL:", nextUrl);
+        e.target.src = nextUrl;
         return;
       }
     }
     
-    e.target.onerror = null;
+    // Use placeholder as last resort
+    console.log("Using placeholder image");
     e.target.src = NO_IMAGE_SVG;
+    e.target.onerror = null; // Prevent further errors
   };
 
   const navigateToPost = (postId) => {
@@ -190,14 +191,14 @@ const GetAllPosts = () => {
         navigateToPost(post._id);
         break;
       case 'share':
-        // Share functionality would go here
+        // وظيفة المشاركة ستكون هنا
         alert('Sharing is not implemented yet');
         break;
       case 'report':
         if (!jwt) {
           promptLogin();
         } else {
-          // Report functionality would go here
+          // وظيفة الإبلاغ ستكون هنا
           alert('Reporting is not implemented yet');
         }
         break;
@@ -220,6 +221,7 @@ const GetAllPosts = () => {
         key={post._id}
         post={post}
         imageUrl={getPostImageUrl(post)}
+        userAvatarUrl={post.user ? getUserAvatarUrl(post.user) : null}
         onClick={() => navigateToPost(post._id)}
         onOptionsClick={(e) => {
           e.stopPropagation();
@@ -249,25 +251,11 @@ const GetAllPosts = () => {
         zIndex: 1000,
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "center",
         width: "80%",
-        maxWidth: "400px"
+        maxWidth: "400px",
       }}>
-        <span>Please log in to like or comment</span>
-        <button 
-          onClick={() => navigate("/account/login")}
-          style={{
-            backgroundColor: "#eb9834",
-            color: "white",
-            border: "none",
-            padding: "5px 10px",
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginLeft: "10px"
-          }}
-        >
-          Login
-        </button>
+        يجب عليك تسجيل الدخول للقيام بهذا الإجراء
       </div>
     );
   };
@@ -438,6 +426,8 @@ const styles = {
     padding: "16px",
     overflow: "auto",
     position: "relative",
+    display: "flex",
+    justifyContent: "center",
   },
   refreshIndicator: {
     position: "absolute",
@@ -462,20 +452,24 @@ const styles = {
   },
   grid: {
     width: "100%",
+    maxWidth: "800px",
   },
   row: {
     display: "flex",
     flexWrap: "wrap",
-    margin: "0 -15px",
+    justifyContent: "center",
+    margin: "0",
   },
   col: {
     flex: "0 0 100%",
     padding: "0 15px",
     marginBottom: "20px",
+    maxWidth: "800px",
   },
   emptyCol: {
     flex: "0 0 100%",
     padding: "0 15px",
+    maxWidth: "800px",
   },
   card: {
     backgroundColor: "white",

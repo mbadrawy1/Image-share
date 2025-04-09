@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
-// ...existing imports...
+// ...الاستيرادات الموجودة...
 
-// Debug environment variables
+// تصحيح متغيرات البيئة
 console.log("JWT_SECRET loaded:", process.env.JWT_SECRET ? "Yes" : "No");
 console.log("JWT_SECRET length:", process.env.JWT_SECRET?.length);
 console.log("MONGODB_URL loaded:", process.env.MONGODB_URL ? "Yes" : "No");
 
-// ...rest of your code...
+// ...باقي الكود الخاص بك...
 const { Schema } = mongoose;
 
 const userSchema = new Schema(
@@ -29,19 +29,19 @@ const userSchema = new Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true, // يضيف تلقائيًا حقول createdAt و updatedAt
   }
 );
 
-// Define relationships
+// تعريف العلاقات
 userSchema.virtual("posts", {
-  ref: "Post", // Reference to the Post model
+  ref: "Post", // إشارة إلى نموذج المنشور
   localField: "_id",
   foreignField: "user",
 });
 
 userSchema.virtual("comments", {
-  ref: "Comment", // Reference to the Comment model
+  ref: "Comment", // إشارة إلى نموذج التعليق
   localField: "_id",
   foreignField: "user",
 });

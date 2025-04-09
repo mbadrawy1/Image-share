@@ -70,16 +70,11 @@ export const getAllPosts = async (req, res) => {
         path: "user",
         select: "-password -email",
       })
+      .populate({
+        path: "images",
+        select: "img_uri",
+      })
       .sort({ createdAt: -1 });
-
-    // If we have a logged in user, check which posts they've liked
-    if (req.currentUser && !req.isGuest) {
-      // For authenticated users, we could add info about which posts they've liked
-      // But this is optional and can be handled on the client side as well
-      console.log("Logged in user viewing all posts:", req.currentUser.email);
-    } else {
-      console.log("Guest user viewing all posts");
-    }
 
     res.status(200).json(posts);
   } catch (e) {
@@ -127,9 +122,12 @@ export const getPost = async (req, res) => {
 
 export const getMyAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ user: req.currentUser.id }).sort({
-      createdAt: -1,
-    });
+    const posts = await Post.find({ user: req.currentUser.id })
+      .populate({
+        path: "images",
+        select: "img_uri",
+      })
+      .sort({ createdAt: -1 });
 
     res.status(200).json(posts);
   } catch (e) {

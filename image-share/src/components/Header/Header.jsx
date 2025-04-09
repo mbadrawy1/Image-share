@@ -25,9 +25,14 @@ const Header = (props) => {
   return (
     <header
       style={{
-        backgroundColor: "#3880ff",
+        background: "linear-gradient(135deg, #3880ff 0%, #4c6fff 100%)",
         color: "white",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        width: "100%",
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
       }}
     >
       <div
@@ -36,7 +41,10 @@ const Header = (props) => {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 16px",
-          height: "56px",
+          height: "64px", // Increased height
+          maxWidth: "1200px",
+          margin: "0 auto",
+          width: "100%"
         }}
       >
         {/* Back Button */}
@@ -50,18 +58,27 @@ const Header = (props) => {
           <button
             onClick={handleBackClick}
             style={{
-              background: "none",
+              background: "rgba(255,255,255,0.1)",
               border: "none",
+              borderRadius: "50%",
               padding: "8px",
               cursor: "pointer",
               color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "36px",
+              height: "36px",
+              transition: "all 0.2s ease",
             }}
             aria-label="Go back"
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
+              width="20"
+              height="20"
               viewBox="0 0 512 512"
             >
               <path
@@ -77,10 +94,12 @@ const Header = (props) => {
           style={{
             margin: 0,
             fontSize: "1.25rem",
-            fontWeight: 500,
+            fontWeight: 600,
             position: "absolute",
             left: "50%",
             transform: "translateX(-50%)",
+            letterSpacing: "0.5px",
+            textShadow: "0 1px 2px rgba(0,0,0,0.1)",
           }}
         >
           {props.headerTitle}
@@ -89,20 +108,30 @@ const Header = (props) => {
         {/* Menu Button */}
         <div>
           <button
+            id="menu-toggle-button"
             onClick={toggleMenu}
             style={{
-              background: "none",
+              background: "rgba(255,255,255,0.1)",
               border: "none",
+              borderRadius: "50%",
               padding: "8px",
               cursor: "pointer",
               color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "36px",
+              height: "36px",
+              transition: "all 0.2s ease",
             }}
             aria-label="Open menu"
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
+              width="20"
+              height="20"
               viewBox="0 0 512 512"
             >
               <path

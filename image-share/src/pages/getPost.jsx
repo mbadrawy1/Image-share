@@ -135,7 +135,7 @@ const styles = {
   },
   postImageContainer: {
     width: "100%",
-    height: "250px",
+    height: "400px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",

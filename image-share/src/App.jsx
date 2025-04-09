@@ -31,7 +31,7 @@ const AppContent = () => {
   const location = useLocation();
   const path = location.pathname;
   
-  // Don't show menu on login or register pages
+  // Don't show menu on login or register pages only
   const hideMenu = path === '/account/login' || path === '/account/register';
   
   // Check if we're on a post detail page
@@ -39,11 +39,10 @@ const AppContent = () => {
   
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {!hideMenu && <Menu />}
+      <Menu initialIsOpen={false} /> {/* Always include Menu but initially closed */}
       <div style={{ 
         flex: 1, 
-        width: isPostDetail ? '100%' : 'calc(100vw - 260px)', 
-        marginLeft: hideMenu ? '0' : (isPostDetail ? '0' : '260px'),
+        width: '100%', /* Always use full width */
         height: '100vh',
         overflow: 'auto',
         position: 'relative' // Added to ensure proper stacking context

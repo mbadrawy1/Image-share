@@ -25,29 +25,29 @@ const postSchema = new Schema(
     images: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "PostImage", // Reference to the PostImage model
+        ref: "PostImage", // إشارة إلى نموذج صورة المنشور
       },
     ],
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Reference to the User model
+      ref: "User", // إشارة إلى نموذج المستخدم
       required: true,
     },
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Like", // Reference to the Like model
+        ref: "Like", // إشارة إلى نموذج الإعجاب
       },
     ],
     comments: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Comment", // Reference to the Comment model
+        ref: "Comment", // إشارة إلى نموذج التعليق
       },
     ],
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true, // يضيف تلقائيًا حقول createdAt و updatedAt
   }
 );
 

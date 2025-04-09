@@ -10,12 +10,12 @@ const postImageSchema = new Schema(
     },
     post: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Post", // Reference to the Post model
+      ref: "Post", // إشارة إلى نموذج المنشور
       required: true,
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true, // يضيف تلقائيًا حقول createdAt و updatedAt
   }
 );
 
